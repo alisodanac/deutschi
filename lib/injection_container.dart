@@ -18,6 +18,13 @@ import 'features/words/presentation/manager/word_details_cubit.dart';
 import 'features/test/presentation/manager/test_cubit.dart';
 import 'features/words/domain/use_cases/update_word_use_case.dart';
 import 'features/settings/presentation/manager/backup_settings_cubit.dart';
+import 'features/settings/presentation/manager/notification_settings_cubit.dart';
+import 'core/theme/theme_cubit.dart';
+import 'core/services/notification_service.dart';
+import 'features/statistics/data/datasource/statistics_local_data_source.dart';
+import 'features/statistics/data/repository/statistics_repository_impl.dart';
+import 'features/statistics/domain/repository/statistics_repository.dart';
+import 'features/statistics/presentation/manager/statistics_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -31,8 +38,11 @@ Future<void> init() async {
   sl.registerFactory(() => CategoryWordsCubit(sl()));
 
   sl.registerFactory(() => WordDetailsCubit(sl()));
-  sl.registerFactory(() => TestCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => TestCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => BackupSettingsCubit(sl(), sl()));
+  sl.registerFactory(() => ThemeCubit());
+  sl.registerFactory(() => NotificationSettingsCubit(sl()));
+  sl.registerFactory(() => StatisticsCubit(sl()));
 
   // Use cases
   sl.registerLazySingleton(() => AddWordUseCase(sl()));
@@ -44,12 +54,15 @@ Future<void> init() async {
 
   // Repository
   sl.registerLazySingleton<WordRepository>(() => WordRepositoryImpl(sl()));
+  sl.registerLazySingleton<StatisticsRepository>(() => StatisticsRepositoryImpl(sl(), sl()));
 
   // Data sources
   sl.registerLazySingleton<WordLocalDataSource>(() => WordLocalDataSourceImpl(sl()));
+  sl.registerLazySingleton(() => StatisticsLocalDataSource(sl(), sl()));
 
   //! Core
   sl.registerLazySingleton(() => DatabaseHelper());
   sl.registerLazySingleton(() => BackupService(sl()));
   sl.registerLazySingleton(() => DriveService());
+  sl.registerLazySingleton(() => NotificationService());
 }

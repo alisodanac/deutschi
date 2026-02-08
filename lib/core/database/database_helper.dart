@@ -19,7 +19,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'dutschi.db');
-    return await openDatabase(path, version: 2, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(path, version: 3, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -46,6 +46,30 @@ class DatabaseHelper {
         FOREIGN KEY (word_id) REFERENCES words (id) ON DELETE CASCADE
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE test_results(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp INTEGER NOT NULL,
+        mode TEXT,
+        category TEXT,
+        total_words INTEGER,
+        correct_count INTEGER,
+        wrong_count INTEGER
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE word_attempts(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        word_id INTEGER NOT NULL,
+        test_result_id INTEGER NOT NULL,
+        is_correct INTEGER NOT NULL,
+        timestamp INTEGER NOT NULL,
+        FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE,
+        FOREIGN KEY (test_result_id) REFERENCES test_results(id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -53,6 +77,30 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE words ADD COLUMN plural TEXT');
       await db.execute('ALTER TABLE words ADD COLUMN perfect TEXT');
       await db.execute('ALTER TABLE words ADD COLUMN preterit TEXT');
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE test_results(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          timestamp INTEGER NOT NULL,
+          mode TEXT,
+          category TEXT,
+          total_words INTEGER,
+          correct_count INTEGER,
+          wrong_count INTEGER
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE word_attempts(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          word_id INTEGER NOT NULL,
+          test_result_id INTEGER NOT NULL,
+          is_correct INTEGER NOT NULL,
+          timestamp INTEGER NOT NULL,
+          FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE,
+          FOREIGN KEY (test_result_id) REFERENCES test_results(id) ON DELETE CASCADE
+        )
+      ''');
     }
   }
 }

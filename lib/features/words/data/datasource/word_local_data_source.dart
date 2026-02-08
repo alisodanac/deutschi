@@ -4,6 +4,7 @@ import '../../../../core/database/database_helper.dart';
 abstract class WordLocalDataSource {
   Future<void> addWord(WordModel word, List<String> sentences);
   Future<List<WordModel>> getWords();
+  Future<WordModel?> getWordById(int id);
   Future<List<WordModel>> getWordsByCategory(String category);
   Future<List<String>> getCategories();
   Future<List<String>> getSentences(int wordId);
@@ -33,6 +34,14 @@ class WordLocalDataSourceImpl implements WordLocalDataSource {
     return List.generate(maps.length, (i) {
       return WordModel.fromMap(maps[i]);
     });
+  }
+
+  @override
+  Future<WordModel?> getWordById(int id) async {
+    final db = await databaseHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query('words', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (maps.isEmpty) return null;
+    return WordModel.fromMap(maps.first);
   }
 
   @override
