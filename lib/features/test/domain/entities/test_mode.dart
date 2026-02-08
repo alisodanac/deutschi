@@ -1,0 +1,1 @@
+enum TestMode { intensive, fast }
