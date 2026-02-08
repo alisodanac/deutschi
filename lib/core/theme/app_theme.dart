@@ -56,6 +56,21 @@ class AppTheme {
 
       // Icon Theme
       iconTheme: const IconThemeData(color: AppColors.light),
+
+      // Navigation Bar Theme
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.darkest,
+        indicatorColor: AppColors.light,
+        labelTextStyle: WidgetStateProperty.all(
+          GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.lightest),
+        ),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: AppColors.darkest);
+          }
+          return const IconThemeData(color: AppColors.lightest);
+        }),
+      ),
     );
   }
 }

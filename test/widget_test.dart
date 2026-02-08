@@ -7,20 +7,22 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our home screen is displayed.
-    // Note: Since we changed the theme and added AppConstants, the text might be the same
-    // but we should ensure the test environment can find the new imports if they were relative.
-    // The previous test content should still be valid logic-wise.
+    // Verify that our Test screen is displayed initially.
+    expect(find.text('Start your test here!'), findsOneWidget);
+    expect(find.text('Start Test'), findsOneWidget);
 
-    expect(find.text('Welcome to Deutschi!'), findsOneWidget);
-    expect(find.text('Go to Details'), findsOneWidget);
-
-    // Tap the 'Go to Details' button and add duration for animation
-    await tester.tap(find.text('Go to Details'));
+    // Tap the 'Statistics' tab
+    await tester.tap(find.text('Statistics'));
     await tester.pumpAndSettle();
 
-    // Verify that we are on the details screen.
-    expect(find.text('This is the Details Screen'), findsOneWidget);
-    expect(find.text('Back to Home'), findsOneWidget);
+    // Verify that we are on the statistics screen.
+    expect(find.text('Your learning progress'), findsOneWidget);
+
+    // Tap the 'Settings' tab
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+
+    // Verify that we are on the settings screen.
+    expect(find.text('App Preferences'), findsOneWidget);
   });
 }
