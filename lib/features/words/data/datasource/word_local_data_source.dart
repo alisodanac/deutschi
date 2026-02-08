@@ -1,9 +1,10 @@
-import '../../data/models/word_model.dart';
+import '../models/word_model.dart';
 import '../../../../core/database/database_helper.dart';
 
 abstract class WordLocalDataSource {
   Future<void> addWord(WordModel word, List<String> sentences);
   Future<List<WordModel>> getWords();
+  Future<List<String>> getCategories();
 }
 
 class WordLocalDataSourceImpl implements WordLocalDataSource {
@@ -28,6 +29,17 @@ class WordLocalDataSourceImpl implements WordLocalDataSource {
     final List<Map<String, dynamic>> maps = await db.query('words');
     return List.generate(maps.length, (i) {
       return WordModel.fromMap(maps[i]);
+    });
+  }
+
+  @override
+  Future<List<String>> getCategories() async {
+    final db = await databaseHelper.database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
+      'SELECT DISTINCT category FROM words WHERE category IS NOT NULL AND category != ""',
+    );
+    return List.generate(maps.length, (i) {
+      return maps[i]['category'] as String;
     });
   }
 }

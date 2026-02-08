@@ -1,6 +1,6 @@
 import 'package:dutschi/core/database/database_helper.dart';
-import 'package:dutschi/features/add_word/data/datasource/word_local_data_source.dart';
-import 'package:dutschi/features/add_word/data/models/word_model.dart';
+import 'package:dutschi/features/words/data/datasource/word_local_data_source.dart';
+import 'package:dutschi/features/words/data/models/word_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart';

@@ -18,9 +18,9 @@ class MainLayout extends StatelessWidget {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.quiz_outlined), selectedIcon: Icon(Icons.quiz), label: 'Test'),
           NavigationDestination(
-            icon: Icon(Icons.add_circle_outline),
-            selectedIcon: Icon(Icons.add_circle),
-            label: 'Add Word',
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(Icons.list_alt),
+            label: 'Words',
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),

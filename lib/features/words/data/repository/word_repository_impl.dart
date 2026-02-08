@@ -1,8 +1,8 @@
-import 'package:dutschi/features/add_word/domain/repository/word_repository.dart';
+import 'package:dutschi/features/words/domain/repository/word_repository.dart';
 
-import 'package:dutschi/features/add_word/domain/entities/word.dart';
-import 'package:dutschi/features/add_word/data/datasource/word_local_data_source.dart';
-import 'package:dutschi/features/add_word/data/models/word_model.dart';
+import 'package:dutschi/features/words/domain/entities/word.dart';
+import 'package:dutschi/features/words/data/datasource/word_local_data_source.dart';
+import 'package:dutschi/features/words/data/models/word_model.dart';
 
 class WordRepositoryImpl implements WordRepository {
   final WordLocalDataSource localDataSource;
@@ -26,5 +26,10 @@ class WordRepositoryImpl implements WordRepository {
   Future<List<Word>> getWords() async {
     final wordModels = await localDataSource.getWords();
     return wordModels; // WordModel extends Word, so this is valid
+  }
+
+  @override
+  Future<List<String>> getCategories() async {
+    return await localDataSource.getCategories();
   }
 }
