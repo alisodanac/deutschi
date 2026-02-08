@@ -1,4 +1,4 @@
-package com.alisodan.dutschi
+package com.alisodan.deutschi
 
 import io.flutter.embedding.android.FlutterActivity
 

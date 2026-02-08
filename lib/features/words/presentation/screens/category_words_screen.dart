@@ -5,7 +5,6 @@ import '../../../../injection_container.dart';
 import '../../../../core/constants.dart';
 import '../manager/category_words_cubit.dart';
 import '../manager/category_words_state.dart';
-import '../../domain/entities/word.dart';
 
 class CategoryWordsScreen extends StatelessWidget {
   final String categoryName;

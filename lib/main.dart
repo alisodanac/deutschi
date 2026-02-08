@@ -9,10 +9,13 @@ import 'package:dutschi/core/workers/backup_worker.dart';
 
 import 'package:dutschi/core/services/notification_service.dart';
 
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'injection_container.dart' as di;
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
   await di.init();
 
   // Initialize Workmanager for background tasks
@@ -22,6 +25,7 @@ void main() async {
   await di.sl<NotificationService>().initialize();
 
   runApp(const MyApp());
+  FlutterNativeSplash.remove();
 }
 
 class MyApp extends StatelessWidget {

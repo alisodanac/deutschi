@@ -6,7 +6,6 @@ import '../../../../injection_container.dart';
 import '../../../../core/constants.dart';
 import '../../domain/entities/word.dart';
 import '../manager/word_details_cubit.dart';
-import '../manager/category_words_cubit.dart';
 
 class WordDetailsScreen extends StatelessWidget {
   final Word word;
