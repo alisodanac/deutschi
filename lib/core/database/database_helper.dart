@@ -19,7 +19,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'dutschi.db');
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    return await openDatabase(path, version: 2, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -31,7 +31,10 @@ class DatabaseHelper {
         type TEXT,
         category TEXT,
         bw_image_path TEXT,
-        color_image_path TEXT
+        color_image_path TEXT,
+        plural TEXT,
+        perfect TEXT,
+        preterit TEXT
       )
     ''');
 
@@ -43,5 +46,13 @@ class DatabaseHelper {
         FOREIGN KEY (word_id) REFERENCES words (id) ON DELETE CASCADE
       )
     ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE words ADD COLUMN plural TEXT');
+      await db.execute('ALTER TABLE words ADD COLUMN perfect TEXT');
+      await db.execute('ALTER TABLE words ADD COLUMN preterit TEXT');
+    }
   }
 }

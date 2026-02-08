@@ -9,6 +9,9 @@ class WordModel extends Word {
     super.category,
     super.bwImagePath,
     super.colorImagePath,
+    super.plural,
+    super.perfect,
+    super.preterit,
   });
 
   factory WordModel.fromMap(Map<String, dynamic> map) {
@@ -20,6 +23,9 @@ class WordModel extends Word {
       category: map['category'] as String?,
       bwImagePath: map['bw_image_path'] as String?,
       colorImagePath: map['color_image_path'] as String?,
+      plural: map['plural'] as String?,
+      perfect: map['perfect'] as String?,
+      preterit: map['preterit'] as String?,
     );
   }
 
@@ -32,6 +38,9 @@ class WordModel extends Word {
       'category': category,
       'bw_image_path': bwImagePath,
       'color_image_path': colorImagePath,
+      'plural': plural,
+      'perfect': perfect,
+      'preterit': preterit,
     };
   }
 }

@@ -11,6 +11,15 @@ class AddWordInitial extends AddWordState {}
 
 class AddWordLoading extends AddWordState {}
 
+class AddWordLoaded extends AddWordState {
+  final List<String> categories;
+
+  const AddWordLoaded(this.categories);
+
+  @override
+  List<Object?> get props => [categories];
+}
+
 class AddWordSuccess extends AddWordState {}
 
 class AddWordFailure extends AddWordState {

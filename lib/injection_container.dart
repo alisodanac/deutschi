@@ -15,7 +15,7 @@ final sl = GetIt.instance;
 Future<void> init() async {
   //! Features - Add Word
   // Bloc
-  sl.registerFactory(() => AddWordCubit(sl()));
+  sl.registerFactory(() => AddWordCubit(sl(), sl()));
   sl.registerFactory(() => WordsListCubit(sl()));
 
   // Use cases
