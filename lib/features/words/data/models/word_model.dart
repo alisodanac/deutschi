@@ -1,4 +1,5 @@
 import '../../domain/entities/word.dart';
+import '../../domain/entities/word_type.dart';
 
 class WordModel extends Word {
   const WordModel({
@@ -19,7 +20,7 @@ class WordModel extends Word {
       id: map['id'] as int?,
       word: map['word'] as String,
       article: map['article'] as String?,
-      type: map['type'] as String?,
+      type: WordType.fromString(map['type'] as String?),
       category: map['category'] as String?,
       bwImagePath: map['bw_image_path'] as String?,
       colorImagePath: map['color_image_path'] as String?,
@@ -34,7 +35,7 @@ class WordModel extends Word {
       'id': id,
       'word': word,
       'article': article,
-      'type': type,
+      'type': type?.toString(),
       'category': category,
       'bw_image_path': bwImagePath,
       'color_image_path': colorImagePath,

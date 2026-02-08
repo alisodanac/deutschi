@@ -1,10 +1,11 @@
 import 'package:equatable/equatable.dart';
+import 'word_type.dart';
 
 class Word extends Equatable {
   final int? id;
   final String word;
   final String? article;
-  final String? type;
+  final WordType? type;
   final String? category;
   final String? bwImagePath;
   final String? colorImagePath;

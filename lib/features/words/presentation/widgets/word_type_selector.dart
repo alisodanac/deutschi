@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../domain/entities/word_type.dart';
 import '../helpers/add_word_form_helper.dart';
 
 class WordTypeSelector extends StatelessWidget {
@@ -8,11 +9,11 @@ class WordTypeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
+    return DropdownButtonFormField<WordType>(
       value: helper.selectedType,
       decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
-      items: ['Noun', 'Verb', 'Adjective', 'Adverb'].map((String value) {
-        return DropdownMenuItem<String>(value: value, child: Text(value));
+      items: WordType.values.map((WordType value) {
+        return DropdownMenuItem<WordType>(value: value, child: Text(value.toString()));
       }).toList(),
       onChanged: helper.setType,
       validator: (value) => value == null ? 'Please select a type' : null,

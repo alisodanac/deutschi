@@ -73,6 +73,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
           Expanded(
             child: BlocListener<AIChatCubit, AIChatState>(
               listener: (context, state) {
+                if (state.messages.isNotEmpty) {
+                  _scrollToBottom();
+                }
                 if (state.error != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../domain/entities/word_type.dart';
 import '../helpers/add_word_form_helper.dart';
 
 class WordDynamicFields extends StatelessWidget {
@@ -8,7 +9,7 @@ class WordDynamicFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (helper.selectedType == 'Noun') {
+    if (helper.selectedType == WordType.noun) {
       return Column(
         children: [
           Row(
@@ -46,11 +47,6 @@ class WordDynamicFields extends StatelessWidget {
         ],
       );
     } else {
-      // For Verb, Adjective, Adverb, or initially nothing selected (though usually type is first)
-      // We need to show the Word field.
-      // If Verb, show Word first, then forms.
-      // If others, just Word (and then screen shows images etc).
-      // Since this widget is "DynamicFields", maybe we should make it "MainInputSection" that always includes Word?
       return Column(
         children: [
           TextFormField(
@@ -59,7 +55,7 @@ class WordDynamicFields extends StatelessWidget {
             validator: (value) => value == null || value.isEmpty ? 'Please enter a word' : null,
           ),
           const SizedBox(height: 16),
-          if (helper.selectedType == 'Verb') ...[
+          if (helper.selectedType == WordType.verb) ...[
             TextFormField(
               controller: helper.perfectController,
               decoration: const InputDecoration(labelText: 'Perfect Form', border: OutlineInputBorder()),

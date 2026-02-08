@@ -12,18 +12,28 @@ import '../widgets/image_picker_section.dart';
 import '../widgets/sentence_list.dart';
 import '../../../../features/ai_chat/presentation/manager/ai_chat_cubit.dart';
 import '../../../../features/ai_chat/presentation/screens/ai_chat_screen.dart';
+import '../../domain/entities/word.dart';
 
 class AddWordScreen extends StatelessWidget {
-  const AddWordScreen({super.key});
+  final Word? initialWord;
+  final List<String>? initialSentences;
+
+  const AddWordScreen({super.key, this.initialWord, this.initialSentences});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(create: (context) => sl<AddWordCubit>()..loadCategories(), child: const AddWordView());
+    return BlocProvider(
+      create: (context) => sl<AddWordCubit>()..loadCategories(),
+      child: AddWordView(initialWord: initialWord, initialSentences: initialSentences),
+    );
   }
 }
 
 class AddWordView extends StatefulWidget {
-  const AddWordView({super.key});
+  final Word? initialWord;
+  final List<String>? initialSentences;
+
+  const AddWordView({super.key, this.initialWord, this.initialSentences});
 
   @override
   State<AddWordView> createState() => _AddWordViewState();
@@ -36,6 +46,9 @@ class _AddWordViewState extends State<AddWordView> {
   void initState() {
     super.initState();
     _helper = AddWordFormHelper();
+    if (widget.initialWord != null) {
+      _helper.initialize(widget.initialWord!, widget.initialSentences ?? []);
+    }
   }
 
   @override
@@ -47,7 +60,7 @@ class _AddWordViewState extends State<AddWordView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add New Word')),
+      appBar: AppBar(title: Text(widget.initialWord != null ? 'Edit Word' : 'Add New Word')),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
@@ -67,9 +80,17 @@ class _AddWordViewState extends State<AddWordView> {
       body: BlocListener<AddWordCubit, AddWordState>(
         listener: (context, state) {
           if (state is AddWordSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Word added successfully!')));
-            _helper.reset();
-            context.read<AddWordCubit>().loadCategories();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(widget.initialWord != null ? 'Word updated successfully!' : 'Word added successfully!'),
+              ),
+            );
+            if (widget.initialWord != null) {
+              Navigator.pop(context, true); // Return true to indicate update
+            } else {
+              _helper.reset();
+              context.read<AddWordCubit>().loadCategories();
+            }
           } else if (state is AddWordFailure) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${state.message}')));
           }
@@ -98,7 +119,10 @@ class _AddWordViewState extends State<AddWordView> {
                         if (state is AddWordLoading) {
                           return const Center(child: CircularProgressIndicator());
                         }
-                        return ElevatedButton(onPressed: () => _helper.submit(context), child: const Text('Save Word'));
+                        return ElevatedButton(
+                          onPressed: () => _helper.submit(context),
+                          child: Text(widget.initialWord != null ? 'Update Word' : 'Save Word'),
+                        );
                       },
                     ),
                   ],

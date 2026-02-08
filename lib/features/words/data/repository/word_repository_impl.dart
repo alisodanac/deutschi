@@ -29,7 +29,34 @@ class WordRepositoryImpl implements WordRepository {
   }
 
   @override
+  Future<List<Word>> getWordsByCategory(String category) async {
+    return await localDataSource.getWordsByCategory(category);
+  }
+
+  @override
   Future<List<String>> getCategories() async {
     return await localDataSource.getCategories();
+  }
+
+  @override
+  Future<List<String>> getSentences(int wordId) async {
+    return await localDataSource.getSentences(wordId);
+  }
+
+  @override
+  Future<void> updateWord(Word word, List<String> sentences) async {
+    final wordModel = WordModel(
+      id: word.id,
+      word: word.word,
+      article: word.article,
+      type: word.type,
+      category: word.category,
+      bwImagePath: word.bwImagePath,
+      colorImagePath: word.colorImagePath,
+      plural: word.plural,
+      perfect: word.perfect,
+      preterit: word.preterit,
+    );
+    await localDataSource.updateWord(wordModel, sentences);
   }
 }
