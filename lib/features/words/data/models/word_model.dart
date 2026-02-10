@@ -13,6 +13,13 @@ class WordModel extends Word {
     super.plural,
     super.perfect,
     super.preterit,
+    super.masteryLevel,
+    super.nextReview,
+    super.lastReview,
+    super.srsInterval,
+    super.easeFactor,
+    super.streak,
+    super.sentences,
   });
 
   factory WordModel.fromMap(Map<String, dynamic> map) {
@@ -27,6 +34,12 @@ class WordModel extends Word {
       plural: map['plural'] as String?,
       perfect: map['perfect'] as String?,
       preterit: map['preterit'] as String?,
+      masteryLevel: map['mastery_level'] as int? ?? 0,
+      nextReview: map['next_review'] as int? ?? 0,
+      lastReview: map['last_review'] as int? ?? 0,
+      srsInterval: (map['srs_interval'] as num?)?.toDouble() ?? 0.0,
+      easeFactor: (map['ease_factor'] as num?)?.toDouble() ?? 2.5,
+      streak: map['streak'] as int? ?? 0,
     );
   }
 
@@ -42,6 +55,12 @@ class WordModel extends Word {
       'plural': plural,
       'perfect': perfect,
       'preterit': preterit,
+      'mastery_level': masteryLevel,
+      'next_review': nextReview,
+      'last_review': lastReview,
+      'srs_interval': srsInterval,
+      'ease_factor': easeFactor,
+      'streak': streak,
     };
   }
 }

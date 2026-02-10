@@ -19,16 +19,20 @@ class StatisticsLoaded extends StatisticsState {
   final List<TestResult> testHistory;
   final List<WordStats> learnedWords;
   final List<WordStats> inProgressWords;
+  final int currentStreak;
+  final List<WordStats> weakWords;
 
   const StatisticsLoaded({
     required this.overallStats,
     required this.testHistory,
     required this.learnedWords,
     required this.inProgressWords,
+    this.currentStreak = 0,
+    this.weakWords = const [],
   });
 
   @override
-  List<Object?> get props => [overallStats, testHistory, learnedWords, inProgressWords];
+  List<Object?> get props => [overallStats, testHistory, learnedWords, inProgressWords, currentStreak, weakWords];
 }
 
 class StatisticsError extends StatisticsState {

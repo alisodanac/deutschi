@@ -5,6 +5,8 @@ abstract class WordRepository {
   Future<List<Word>> getWords();
   Future<List<Word>> getWordsByCategory(String category);
   Future<List<String>> getCategories();
-  Future<List<String>> getSentences(int wordId);
+  Future<List<String>> getSentencesForWord(int wordId);
   Future<void> updateWord(Word word, List<String> sentences);
+  Future<List<Word>> getDueWords();
+  Future<void> updateWordStats(Word word);
 }

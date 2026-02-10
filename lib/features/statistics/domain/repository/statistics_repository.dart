@@ -20,6 +20,12 @@ abstract class StatisticsRepository {
 
   /// Get overall statistics
   Future<OverallStats> getOverallStats();
+
+  /// Get current daily streak
+  Future<int> getDailyStreak();
+
+  /// Get weak words (lowest mastery level)
+  Future<List<WordStats>> getWeakWords(int limit);
 }
 
 class OverallStats {

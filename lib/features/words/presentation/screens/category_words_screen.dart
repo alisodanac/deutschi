@@ -29,6 +29,9 @@ class CategoryWordsScreen extends StatelessWidget {
                 itemCount: state.words.length,
                 itemBuilder: (context, index) {
                   final word = state.words[index];
+                  final articleColor = AppColors.getArticleColor(word.article);
+                  final isDas = word.article?.toLowerCase() == 'das';
+
                   return Card(
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: ListTile(
@@ -36,11 +39,11 @@ class CategoryWordsScreen extends StatelessWidget {
                       subtitle: Text(word.type?.toString() ?? ''),
                       leading: word.article != null
                           ? CircleAvatar(
-                              backgroundColor: AppColors.getArticleColor(word.article),
+                              backgroundColor: articleColor,
                               child: Text(
                                 word.article!,
                                 style: TextStyle(
-                                  color: word.article == 'Das' ? Colors.black : Colors.white,
+                                  color: isDas ? Colors.black : Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),

@@ -55,6 +55,14 @@ class StatisticsScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
 
+          // Weak Words Section
+          if (state.weakWords.isNotEmpty) ...[
+            Text('Needs Practice', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.error)),
+            const SizedBox(height: 8),
+            ...state.weakWords.map((w) => _buildWordStatTile(context, w, isLearned: false)),
+            const SizedBox(height: 24),
+          ],
+
           // Learned Words
           if (state.learnedWords.isNotEmpty) ...[
             Text('Learned Words (${state.learnedWords.length})', style: theme.textTheme.titleMedium),
@@ -94,7 +102,30 @@ class StatisticsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Overall Progress', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Overall Progress', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                if (state.currentStreak > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.local_fire_department, size: 16, color: Colors.deepOrange),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${state.currentStreak} Day Streak',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: Colors.deepOrange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,

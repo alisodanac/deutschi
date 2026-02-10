@@ -18,6 +18,15 @@ class WordRepositoryImpl implements WordRepository {
       category: word.category,
       bwImagePath: word.bwImagePath,
       colorImagePath: word.colorImagePath,
+      plural: word.plural,
+      perfect: word.perfect,
+      preterit: word.preterit,
+      masteryLevel: word.masteryLevel,
+      nextReview: word.nextReview,
+      lastReview: word.lastReview,
+      srsInterval: word.srsInterval,
+      easeFactor: word.easeFactor,
+      streak: word.streak,
     );
     await localDataSource.addWord(wordModel, sentences);
   }
@@ -39,7 +48,7 @@ class WordRepositoryImpl implements WordRepository {
   }
 
   @override
-  Future<List<String>> getSentences(int wordId) async {
+  Future<List<String>> getSentencesForWord(int wordId) async {
     return await localDataSource.getSentences(wordId);
   }
 
@@ -56,7 +65,44 @@ class WordRepositoryImpl implements WordRepository {
       plural: word.plural,
       perfect: word.perfect,
       preterit: word.preterit,
+      masteryLevel: word.masteryLevel,
+      nextReview: word.nextReview,
+      lastReview: word.lastReview,
+      srsInterval: word.srsInterval,
+      easeFactor: word.easeFactor,
+      streak: word.streak,
+      sentences: sentences,
     );
     await localDataSource.updateWord(wordModel, sentences);
+  }
+
+  @override
+  Future<List<Word>> getDueWords() async {
+    return await localDataSource.getDueWords();
+  }
+
+  @override
+  Future<void> updateWordStats(Word word) async {
+    // Convert logic if needed, or just pass
+    final wordModel = WordModel(
+      id: word.id,
+      word: word.word,
+      article: word.article,
+      type: word.type,
+      category: word.category,
+      bwImagePath: word.bwImagePath,
+      colorImagePath: word.colorImagePath,
+      plural: word.plural,
+      perfect: word.perfect,
+      preterit: word.preterit,
+      masteryLevel: word.masteryLevel,
+      nextReview: word.nextReview,
+      lastReview: word.lastReview,
+      srsInterval: word.srsInterval,
+      easeFactor: word.easeFactor,
+      streak: word.streak,
+      sentences: word.sentences,
+    );
+    await localDataSource.updateWordStats(wordModel);
   }
 }

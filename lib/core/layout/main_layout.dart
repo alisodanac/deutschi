@@ -16,7 +16,7 @@ class MainLayout extends StatelessWidget {
           navigationShell.goBranch(index, initialLocation: index == navigationShell.currentIndex);
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.quiz_outlined), selectedIcon: Icon(Icons.quiz), label: 'Test'),
+          NavigationDestination(icon: Icon(Icons.school_outlined), selectedIcon: Icon(Icons.school), label: 'Test'),
           NavigationDestination(
             icon: Icon(Icons.list_alt_outlined),
             selectedIcon: Icon(Icons.list_alt),

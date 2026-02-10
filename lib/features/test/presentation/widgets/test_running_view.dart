@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../injection_container.dart';
+import '../../../../core/services/tts_service.dart';
 import '../../domain/entities/test_mode.dart';
 import '../manager/test_cubit.dart';
 import '../manager/test_state.dart';
@@ -22,6 +24,7 @@ class _TestRunningViewState extends State<TestRunningView> {
   final TextEditingController _sentencesController = TextEditingController();
 
   String? _fastModeArticle;
+  String? _selectedOption;
 
   // Cache file references to avoid re-reading from disk on every rebuild
   final Map<String, FileImage> _imageCache = {};
@@ -51,6 +54,7 @@ class _TestRunningViewState extends State<TestRunningView> {
     _sentencesController.clear();
     setState(() {
       _fastModeArticle = null;
+      _selectedOption = null;
     });
   }
 
@@ -106,12 +110,27 @@ class _TestRunningViewState extends State<TestRunningView> {
               // Mode Specific Inputs
               if (mode == TestMode.fast) ...[
                 if (state.isAnswerChecked) _buildFeedback(context, state) else _buildFastModeInputs(context),
+              ] else if (mode == TestMode.reverse) ...[
+                if (state.isAnswerChecked) _buildFeedback(context, state) else _buildReverseInputs(context, state),
+              ] else if (mode == TestMode.sentence) ...[
+                // Sentence mode inputs
+                if (state.isAnswerChecked) _buildFeedback(context, state) else _buildSentenceInputs(context, state),
               ] else ...[
                 if (word.bwImagePath == null)
-                  Text(
-                    'Translate: ${word.word}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Translate: ${word.word}',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.volume_up),
+                        onPressed: () => sl<TTSService>().speak(word.word),
+                        tooltip: 'Listen',
+                      ),
+                    ],
                   ),
 
                 const SizedBox(height: 16),
@@ -283,6 +302,47 @@ class _TestRunningViewState extends State<TestRunningView> {
     );
   }
 
+  Widget _buildReverseInputs(BuildContext context, TestRunning state) {
+    return Column(
+      children: [
+        const Text('Select the correct word:', style: TextStyle(fontSize: 18)),
+        const SizedBox(height: 16),
+        ...state.currentOptions.map((option) {
+          return RadioListTile<String>(
+            title: Text(option),
+            value: option,
+            groupValue: _selectedOption,
+            onChanged: (value) {
+              setState(() {
+                _selectedOption = value;
+              });
+            },
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildSentenceInputs(BuildContext context, TestRunning state) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            state.sentenceContext ?? 'Loading sentence...',
+            style: const TextStyle(fontSize: 18, fontStyle: FontStyle.italic),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _wordController,
+          decoration: const InputDecoration(labelText: 'Missing Word'),
+        ),
+      ],
+    );
+  }
+
   Widget _buildFeedback(BuildContext context, TestRunning state) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -309,6 +369,12 @@ class _TestRunningViewState extends State<TestRunningView> {
             if (state.currentWord.perfect != null) Text('Perfect: ${state.currentWord.perfect}'),
             if (state.currentWord.preterit != null) Text('Preterit: ${state.currentWord.preterit}'),
           ],
+          const SizedBox(height: 8),
+          IconButton(
+            icon: const Icon(Icons.volume_up),
+            onPressed: () => sl<TTSService>().speak(state.currentWord.word),
+            tooltip: 'Listen',
+          ),
         ],
       ),
     );
@@ -321,6 +387,14 @@ class _TestRunningViewState extends State<TestRunningView> {
         return;
       }
       context.read<TestCubit>().checkAnswer({'fast_mode_article': _fastModeArticle!});
+    } else if (mode == TestMode.reverse) {
+      if (_selectedOption == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select an option')));
+        return;
+      }
+      context.read<TestCubit>().checkAnswer({'selected_option': _selectedOption!});
+    } else if (mode == TestMode.sentence) {
+      context.read<TestCubit>().checkAnswer({'word': _wordController.text});
     } else {
       context.read<TestCubit>().checkAnswer({
         'word': _wordController.text,

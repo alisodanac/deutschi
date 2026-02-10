@@ -1,1 +1,1 @@
-enum TestMode { intensive, fast }
+enum TestMode { intensive, fast, spacedRepetition, reverse, sentence }

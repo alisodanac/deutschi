@@ -19,7 +19,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'dutschi.db');
-    return await openDatabase(path, version: 3, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(path, version: 4, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -34,7 +34,13 @@ class DatabaseHelper {
         color_image_path TEXT,
         plural TEXT,
         perfect TEXT,
-        preterit TEXT
+        preterit TEXT,
+        mastery_level INTEGER DEFAULT 0,
+        next_review INTEGER DEFAULT 0,
+        last_review INTEGER DEFAULT 0,
+        srs_interval REAL DEFAULT 0.0,
+        ease_factor REAL DEFAULT 2.5,
+        streak INTEGER DEFAULT 0
       )
     ''');
 
@@ -101,6 +107,15 @@ class DatabaseHelper {
           FOREIGN KEY (test_result_id) REFERENCES test_results(id) ON DELETE CASCADE
         )
       ''');
+    }
+    if (oldVersion < 4) {
+      // Add SRS and mastery tracking fields
+      await db.execute('ALTER TABLE words ADD COLUMN mastery_level INTEGER DEFAULT 0');
+      await db.execute('ALTER TABLE words ADD COLUMN next_review INTEGER DEFAULT 0');
+      await db.execute('ALTER TABLE words ADD COLUMN last_review INTEGER DEFAULT 0');
+      await db.execute('ALTER TABLE words ADD COLUMN srs_interval REAL DEFAULT 0.0');
+      await db.execute('ALTER TABLE words ADD COLUMN ease_factor REAL DEFAULT 2.5');
+      await db.execute('ALTER TABLE words ADD COLUMN streak INTEGER DEFAULT 0');
     }
   }
 }

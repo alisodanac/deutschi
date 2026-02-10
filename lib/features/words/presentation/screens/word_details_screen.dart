@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../injection_container.dart';
 import '../../../../core/constants.dart';
+import '../../../../core/services/tts_service.dart';
 import '../../domain/entities/word.dart';
 import '../manager/word_details_cubit.dart';
 
@@ -125,13 +126,19 @@ class WordDetailsScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: word.article == 'Das' ? Colors.black : Colors.white,
+                color: word.article?.toLowerCase() == 'das' ? Colors.black : Colors.white,
               ),
             ),
           ),
         if (word.article != null) const SizedBox(width: 16),
         Expanded(
           child: Text(word.word, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+        ),
+        IconButton(
+          icon: const Icon(Icons.volume_up, size: 32),
+          onPressed: () {
+            sl<TTSService>().speak(word.word);
+          },
         ),
       ],
     );

@@ -6,6 +6,6 @@ class GetSentencesUseCase {
   GetSentencesUseCase(this.repository);
 
   Future<List<String>> call(int wordId) async {
-    return await repository.getSentences(wordId);
+    return await repository.getSentencesForWord(wordId);
   }
 }

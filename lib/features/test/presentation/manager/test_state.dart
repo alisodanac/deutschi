@@ -41,6 +41,8 @@ class TestRunning extends TestState {
   final bool isAnswerCorrect;
   final Map<String, String> userInputs; // Key: field name, Value: input
   final TestMode mode;
+  final List<String> currentOptions; // For Reverse Mode
+  final String? sentenceContext; // For Sentence Mode (with blank)
 
   Word get currentWord => words[currentIndex];
   bool get isLastWord => currentIndex == words.length - 1;
@@ -54,6 +56,8 @@ class TestRunning extends TestState {
     this.isAnswerCorrect = false,
     this.userInputs = const {},
     required this.mode,
+    this.currentOptions = const [],
+    this.sentenceContext,
   });
 
   TestRunning copyWith({
@@ -65,6 +69,8 @@ class TestRunning extends TestState {
     bool? isAnswerCorrect,
     Map<String, String>? userInputs,
     TestMode? mode,
+    List<String>? currentOptions,
+    String? sentenceContext,
   }) {
     return TestRunning(
       words: words ?? this.words,
@@ -75,6 +81,8 @@ class TestRunning extends TestState {
       isAnswerCorrect: isAnswerCorrect ?? this.isAnswerCorrect,
       userInputs: userInputs ?? this.userInputs,
       mode: mode ?? this.mode,
+      currentOptions: currentOptions ?? this.currentOptions,
+      sentenceContext: sentenceContext ?? this.sentenceContext,
     );
   }
 
@@ -88,6 +96,8 @@ class TestRunning extends TestState {
     isAnswerCorrect,
     userInputs,
     mode,
+    currentOptions,
+    sentenceContext,
   ];
 }
 

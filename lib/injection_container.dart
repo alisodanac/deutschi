@@ -25,6 +25,7 @@ import 'features/statistics/data/datasource/statistics_local_data_source.dart';
 import 'features/statistics/data/repository/statistics_repository_impl.dart';
 import 'features/statistics/domain/repository/statistics_repository.dart';
 import 'features/statistics/presentation/manager/statistics_cubit.dart';
+import 'core/services/tts_service.dart';
 
 final sl = GetIt.instance;
 
@@ -36,7 +37,7 @@ Future<void> init() async {
   sl.registerFactory(() => CategoryWordsCubit(sl()));
 
   sl.registerFactory(() => WordDetailsCubit(sl()));
-  sl.registerFactory(() => TestCubit(sl(), sl(), sl(), sl()));
+  sl.registerFactory(() => TestCubit(sl(), sl(), sl(), sl(), sl()));
   sl.registerFactory(() => BackupSettingsCubit(sl(), sl()));
   sl.registerFactory(() => ThemeCubit());
   sl.registerFactory(() => NotificationSettingsCubit(sl()));
@@ -63,4 +64,5 @@ Future<void> init() async {
   sl.registerLazySingleton(() => BackupService(sl()));
   sl.registerLazySingleton(() => DriveService());
   sl.registerLazySingleton(() => NotificationService());
+  sl.registerLazySingleton(() => TTSService());
 }

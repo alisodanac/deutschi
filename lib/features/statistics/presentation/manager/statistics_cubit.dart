@@ -14,6 +14,8 @@ class StatisticsCubit extends Cubit<StatisticsState> {
       final overallStats = await repository.getOverallStats();
       final testHistory = await repository.getTestHistory();
       final allWordStats = await repository.getAllWordStats();
+      final streak = await repository.getDailyStreak();
+      final weakWords = await repository.getWeakWords(10); // Top 10 weak words
 
       final learnedWords = allWordStats.where((w) => w.isLearned).toList();
       final inProgressWords = allWordStats.where((w) => !w.isLearned).toList();
@@ -24,6 +26,8 @@ class StatisticsCubit extends Cubit<StatisticsState> {
           testHistory: testHistory,
           learnedWords: learnedWords,
           inProgressWords: inProgressWords,
+          currentStreak: streak,
+          weakWords: weakWords,
         ),
       );
     } catch (e) {

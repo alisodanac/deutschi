@@ -30,6 +30,19 @@ class StatisticsLocalDataSource {
     return results.map((e) => TestResult.fromMap(e)).toList();
   }
 
+  Future<List<String>> getUniqueTestDates() async {
+    final db = await databaseHelper.database;
+    // SQLite's date function can convert unix epoch (seconds) to YYYY-MM-DD
+    // timestamp is in milliseconds, so divide by 1000
+    final result = await db.rawQuery('''
+      SELECT DISTINCT date(timestamp / 1000, 'unixepoch', 'localtime') as test_date
+      FROM test_results
+      ORDER BY test_date DESC
+    ''');
+
+    return result.map((e) => e['test_date'] as String).toList();
+  }
+
   Future<Map<String, dynamic>?> getWordAttemptStats(int wordId) async {
     final db = await databaseHelper.database;
     final result = await db.rawQuery(

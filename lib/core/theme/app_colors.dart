@@ -16,4 +16,23 @@ class AppColors {
   static const Color lightSurface = Color(0xFFFFFFFF); // Pure White
   static const Color lightText = Color(0xFF111827); // Dark Grey/Black for text
   static const Color lightTextSecondary = Color(0xFF6B7280); // Grey text
+
+  // Gender Colors (User Requested)
+  static const Color derColor = Color(0xFF1E88E5); // Medium Blue
+  static const Color dieColor = Color(0xFFE91E63); // Pink
+  static const Color dasColor = Color(0xFFFFC107); // Yellow
+
+  static Color getArticleColor(String? article) {
+    if (article == null) return lightMedium;
+    switch (article.toLowerCase()) {
+      case 'der':
+        return derColor;
+      case 'die':
+        return dieColor;
+      case 'das':
+        return dasColor;
+      default:
+        return lightMedium;
+    }
+  }
 }
