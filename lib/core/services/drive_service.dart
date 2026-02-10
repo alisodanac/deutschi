@@ -20,22 +20,44 @@ class DriveService {
   Future<bool> signIn() async {
     try {
       _currentUser = await _googleSignIn.signIn();
-      if (_currentUser != null) {
-        await _initDriveApi();
-        return true;
+      if (_currentUser == null) {
+        print('Google Sign-In canceled by user or failed');
+        return false;
       }
-      return false;
+
+      // Verify scopes
+      bool hasScopes = await _googleSignIn.canAccessScopes([drive.DriveApi.driveFileScope]);
+      if (!hasScopes) {
+        print('Required scopes not granted, requesting...');
+        final granted = await _googleSignIn.requestScopes([drive.DriveApi.driveFileScope]);
+        if (!granted) {
+          print('Scopes not granted by user');
+          return false;
+        }
+      }
+
+      await _initDriveApi();
+      return true;
     } catch (e) {
       print('Google Sign-In error: $e');
+      // If the error is about configuration, it might contain useful info
       return false;
     }
   }
 
-  /// Signs in silently (for background tasks).
+  /// Signs in silently (for background tasks or app startup).
   Future<bool> signInSilently() async {
     try {
       _currentUser = await _googleSignIn.signInSilently();
       if (_currentUser != null) {
+        // Even with silent sign-in, we should check scopes
+        bool hasScopes = await _googleSignIn.canAccessScopes([drive.DriveApi.driveFileScope]);
+        if (!hasScopes) {
+          // If signed in but no scopes, we might need a full sign-in later,
+          // but for now we consider it failed for Drive purposes.
+          _currentUser = null;
+          return false;
+        }
         await _initDriveApi();
         return true;
       }
@@ -48,7 +70,12 @@ class DriveService {
 
   /// Signs out the user.
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    try {
+      await _googleSignIn.disconnect(); // Use disconnect to fully revoke if needed, or just signOut
+      await _googleSignIn.signOut();
+    } catch (e) {
+      print('Sign out error: $e');
+    }
     _currentUser = null;
     _driveApi = null;
   }
@@ -57,9 +84,14 @@ class DriveService {
   Future<void> _initDriveApi() async {
     if (_currentUser == null) return;
 
-    final authHeaders = await _currentUser!.authHeaders;
-    final authenticatedClient = _GoogleAuthClient(authHeaders);
-    _driveApi = drive.DriveApi(authenticatedClient);
+    try {
+      final authHeaders = await _currentUser!.authHeaders;
+      final authenticatedClient = _GoogleAuthClient(authHeaders);
+      _driveApi = drive.DriveApi(authenticatedClient);
+    } catch (e) {
+      print('Error initializing Drive API: $e');
+      rethrow;
+    }
   }
 
   /// Uploads backup JSON string to Google Drive.

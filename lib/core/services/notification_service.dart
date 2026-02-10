@@ -21,19 +21,21 @@ class NotificationService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // Initialize timezone
+    // Initialize timezone with timeout to prevent hangs
     tz_data.initializeTimeZones();
     try {
-      final timezoneInfo = await FlutterTimezone.getLocalTimezone();
+      final timezoneInfo = await FlutterTimezone.getLocalTimezone().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => throw 'Timezone timeout',
+      );
       final String timeZoneName = timezoneInfo.identifier;
       tz.setLocalLocation(tz.getLocation(timeZoneName));
     } catch (e) {
-      if (kDebugMode) {
-        print('Error setting local timezone: $e. Falling back to UTC.');
-      }
+      debugPrint('Error or timeout setting local timezone: $e. Falling back to UTC.');
+      // Fallback is already handled by not setting local location or using default
     }
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings('@mipmap/launcher_icon');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -100,7 +102,7 @@ class NotificationService {
           priority: Priority.high,
           showWhen: true,
           fullScreenIntent: true, // Try to be more visible
-          icon: '@mipmap/ic_launcher',
+          icon: '@mipmap/launcher_icon',
         ),
         iOS: const DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true),
       ),

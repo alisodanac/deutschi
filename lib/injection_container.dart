@@ -29,8 +29,6 @@ import 'features/statistics/presentation/manager/statistics_cubit.dart';
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  await sl.reset();
-
   //! Features - Add Word
   // Bloc
   sl.registerFactory(() => AddWordCubit(sl(), sl(), sl()));

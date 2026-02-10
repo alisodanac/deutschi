@@ -17,7 +17,9 @@ class BackupSettingsCubit extends Cubit<BackupSettingsState> {
     final prefs = await SharedPreferences.getInstance();
     final lastBackup = prefs.getString('lastBackupTime');
     final autoBackup = prefs.getBool('autoBackupEnabled') ?? false;
-    final isSignedIn = driveService.isSignedIn;
+
+    // Try to sign in silently to restore connection
+    final isSignedIn = await driveService.signInSilently();
 
     emit(BackupSettingsLoaded(isSignedIn: isSignedIn, lastBackupTime: lastBackup, autoBackupEnabled: autoBackup));
   }

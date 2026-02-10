@@ -13,19 +13,30 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'injection_container.dart' as di;
 
 void main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  try {
+    WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+    FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  await di.init();
+    await di.init();
 
-  // Initialize Workmanager for background tasks
-  Workmanager().initialize(callbackDispatcher);
+    // Initialize Workmanager for background tasks
+    Workmanager().initialize(callbackDispatcher);
 
-  // Initialize Notification Service
-  await di.sl<NotificationService>().initialize();
+    // Initialize Notification Service
+    await di.sl<NotificationService>().initialize();
 
-  runApp(const MyApp());
-  FlutterNativeSplash.remove();
+    runApp(const MyApp());
+  } catch (e, stack) {
+    debugPrint('Startup error: $e');
+    debugPrint(stack.toString());
+    // If initialization fails, we still want to show something and remove splash
+    runApp(
+      MaterialApp(
+        home: Scaffold(body: Center(child: Text('Initialization Error: $e\nCheck your settings and restart.'))),
+      ),
+    );
+    FlutterNativeSplash.remove();
+  }
 }
 
 class MyApp extends StatelessWidget {
