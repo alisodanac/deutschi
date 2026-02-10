@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 
 /// Service responsible for Google Drive authentication and file operations.
 class DriveService {
@@ -14,33 +16,51 @@ class DriveService {
   drive.DriveApi? _driveApi;
 
   /// Returns true if user is currently signed in.
-  bool get isSignedIn => _currentUser != null;
+  bool get isSignedIn => _currentUser != null && _driveApi != null;
 
   /// Signs in the user with Google.
   Future<bool> signIn() async {
     try {
       _currentUser = await _googleSignIn.signIn();
       if (_currentUser == null) {
-        print('Google Sign-In canceled by user or failed');
+        debugPrint('Google Sign-In canceled by user or failed');
         return false;
       }
 
-      // Verify scopes
-      bool hasScopes = await _googleSignIn.canAccessScopes([drive.DriveApi.driveFileScope]);
-      if (!hasScopes) {
-        print('Required scopes not granted, requesting...');
-        final granted = await _googleSignIn.requestScopes([drive.DriveApi.driveFileScope]);
-        if (!granted) {
-          print('Scopes not granted by user');
-          return false;
+      debugPrint('Google Sign-In successful: ${_currentUser!.email}');
+
+      // On iOS, scopes are granted at sign-in time, so canAccessScopes
+      // may return false inappropriately. We try to initialize the API
+      // directly and treat that as the definitive test.
+      if (!Platform.isIOS) {
+        bool hasScopes = await _googleSignIn.canAccessScopes([drive.DriveApi.driveFileScope]);
+        if (!hasScopes) {
+          debugPrint('Required scopes not granted, requesting...');
+          final granted = await _googleSignIn.requestScopes([drive.DriveApi.driveFileScope]);
+          if (!granted) {
+            debugPrint('Scopes not granted by user');
+            return false;
+          }
         }
       }
 
       await _initDriveApi();
+
+      // Verify the connection actually works by making a small API call
+      final verified = await _verifyConnection();
+      if (!verified) {
+        debugPrint('Drive API verification failed');
+        _driveApi = null;
+        return false;
+      }
+
+      debugPrint('Google Drive connected successfully');
       return true;
-    } catch (e) {
-      print('Google Sign-In error: $e');
-      // If the error is about configuration, it might contain useful info
+    } catch (e, stack) {
+      debugPrint('Google Sign-In error: $e');
+      debugPrint('Stack trace: $stack');
+      _currentUser = null;
+      _driveApi = null;
       return false;
     }
   }
@@ -49,21 +69,16 @@ class DriveService {
   Future<bool> signInSilently() async {
     try {
       _currentUser = await _googleSignIn.signInSilently();
-      if (_currentUser != null) {
-        // Even with silent sign-in, we should check scopes
-        bool hasScopes = await _googleSignIn.canAccessScopes([drive.DriveApi.driveFileScope]);
-        if (!hasScopes) {
-          // If signed in but no scopes, we might need a full sign-in later,
-          // but for now we consider it failed for Drive purposes.
-          _currentUser = null;
-          return false;
-        }
-        await _initDriveApi();
-        return true;
+      if (_currentUser == null) {
+        return false;
       }
-      return false;
+
+      await _initDriveApi();
+      return _driveApi != null;
     } catch (e) {
-      print('Silent sign-in error: $e');
+      debugPrint('Silent sign-in error: $e');
+      _currentUser = null;
+      _driveApi = null;
       return false;
     }
   }
@@ -71,10 +86,9 @@ class DriveService {
   /// Signs out the user.
   Future<void> signOut() async {
     try {
-      await _googleSignIn.disconnect(); // Use disconnect to fully revoke if needed, or just signOut
       await _googleSignIn.signOut();
     } catch (e) {
-      print('Sign out error: $e');
+      debugPrint('Sign out error: $e');
     }
     _currentUser = null;
     _driveApi = null;
@@ -86,11 +100,29 @@ class DriveService {
 
     try {
       final authHeaders = await _currentUser!.authHeaders;
+      if (authHeaders.isEmpty) {
+        debugPrint('Error: authHeaders is empty');
+        _driveApi = null;
+        return;
+      }
       final authenticatedClient = _GoogleAuthClient(authHeaders);
       _driveApi = drive.DriveApi(authenticatedClient);
     } catch (e) {
-      print('Error initializing Drive API: $e');
-      rethrow;
+      debugPrint('Error initializing Drive API: $e');
+      _driveApi = null;
+    }
+  }
+
+  /// Verifies the Drive API connection works by listing files.
+  Future<bool> _verifyConnection() async {
+    if (_driveApi == null) return false;
+    try {
+      // A simple call to verify connectivity - list 1 file
+      await _driveApi!.files.list(pageSize: 1, spaces: 'drive');
+      return true;
+    } catch (e) {
+      debugPrint('Drive API verification error: $e');
+      return false;
     }
   }
 
@@ -109,23 +141,60 @@ class DriveService {
       // Check if backup file already exists
       final existingFileId = await _getExistingBackupFileId(folderId);
 
-      final fileMetadata = drive.File()
-        ..name = _backupFileName
-        ..parents = [folderId];
-
-      final mediaContent = drive.Media(Stream.value(utf8.encode(jsonContent)), utf8.encode(jsonContent).length);
+      final bytes = utf8.encode(jsonContent);
+      final mediaContent = drive.Media(Stream.value(bytes), bytes.length);
 
       if (existingFileId != null) {
-        // Update existing file
+        // Update existing file (don't set parents on update)
+        final fileMetadata = drive.File()..name = _backupFileName;
         await _driveApi!.files.update(fileMetadata, existingFileId, uploadMedia: mediaContent);
       } else {
         // Create new file
+        final fileMetadata = drive.File()
+          ..name = _backupFileName
+          ..parents = [folderId];
         await _driveApi!.files.create(fileMetadata, uploadMedia: mediaContent);
       }
 
+      debugPrint('Backup uploaded successfully');
       return true;
     } catch (e) {
-      print('Upload error: $e');
+      debugPrint('Upload error: $e');
+      // If auth error, try to re-authenticate and retry once
+      if (e.toString().contains('401') || e.toString().contains('403')) {
+        debugPrint('Auth error detected, trying to re-authenticate...');
+        _driveApi = null;
+        final signedIn = await signInSilently();
+        if (signedIn) {
+          return _retryUpload(jsonContent);
+        }
+      }
+      return false;
+    }
+  }
+
+  /// Retry upload after re-authentication.
+  Future<bool> _retryUpload(String jsonContent) async {
+    try {
+      final folderId = await _getOrCreateFolder();
+      if (folderId == null) return false;
+
+      final existingFileId = await _getExistingBackupFileId(folderId);
+      final bytes = utf8.encode(jsonContent);
+      final mediaContent = drive.Media(Stream.value(bytes), bytes.length);
+
+      if (existingFileId != null) {
+        final fileMetadata = drive.File()..name = _backupFileName;
+        await _driveApi!.files.update(fileMetadata, existingFileId, uploadMedia: mediaContent);
+      } else {
+        final fileMetadata = drive.File()
+          ..name = _backupFileName
+          ..parents = [folderId];
+        await _driveApi!.files.create(fileMetadata, uploadMedia: mediaContent);
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Retry upload error: $e');
       return false;
     }
   }
@@ -154,7 +223,7 @@ class DriveService {
 
       return utf8.decode(bytes);
     } catch (e) {
-      print('Download error: $e');
+      debugPrint('Download error: $e');
       return null;
     }
   }
@@ -180,7 +249,7 @@ class DriveService {
       final folder = await _driveApi!.files.create(folderMetadata);
       return folder.id;
     } catch (e) {
-      print('Folder error: $e');
+      debugPrint('Folder error: $e');
       return null;
     }
   }
@@ -198,7 +267,7 @@ class DriveService {
       }
       return null;
     } catch (e) {
-      print('File search error: $e');
+      debugPrint('File search error: $e');
       return null;
     }
   }

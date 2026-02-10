@@ -23,6 +23,9 @@ class _TestRunningViewState extends State<TestRunningView> {
 
   String? _fastModeArticle;
 
+  // Cache file references to avoid re-reading from disk on every rebuild
+  final Map<String, FileImage> _imageCache = {};
+
   @override
   void dispose() {
     _wordController.dispose();
@@ -31,6 +34,11 @@ class _TestRunningViewState extends State<TestRunningView> {
     _perfectController.dispose();
     _preteritController.dispose();
     _sentencesController.dispose();
+    // Evict cached images
+    for (final image in _imageCache.values) {
+      image.evict();
+    }
+    _imageCache.clear();
     super.dispose();
   }
 
@@ -46,12 +54,18 @@ class _TestRunningViewState extends State<TestRunningView> {
     });
   }
 
+  FileImage _getCachedImage(String path) {
+    return _imageCache.putIfAbsent(path, () => FileImage(File(path)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<TestCubit, TestState>(
       listener: (context, state) {
         if (state is TestRunning && !state.isAnswerChecked && state.userInputs.isEmpty) {
           _clearInputs();
+          // Pre-cache the next word's images
+          _precacheImages(state);
         }
       },
       builder: (context, state) {
@@ -80,7 +94,7 @@ class _TestRunningViewState extends State<TestRunningView> {
                 Container(
                   height: 200,
                   alignment: Alignment.center,
-                  color: Colors.grey[200],
+                  decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
                   child: Text(
                     mode == TestMode.intensive ? 'No Image Available' : 'Word: ???',
                     style: const TextStyle(fontSize: 18),
@@ -124,13 +138,56 @@ class _TestRunningViewState extends State<TestRunningView> {
     );
   }
 
+  /// Pre-cache images for the current and next word to avoid loading delays.
+  void _precacheImages(TestRunning state) {
+    // Pre-cache current word's images
+    final currentWord = state.currentWord;
+    if (currentWord.bwImagePath != null) {
+      precacheImage(_getCachedImage(currentWord.bwImagePath!), context);
+    }
+    if (currentWord.colorImagePath != null) {
+      precacheImage(_getCachedImage(currentWord.colorImagePath!), context);
+    }
+
+    // Pre-cache next word's images if available
+    if (!state.isLastWord) {
+      final nextWord = state.words[state.currentIndex + 1];
+      if (nextWord.bwImagePath != null) {
+        precacheImage(_getCachedImage(nextWord.bwImagePath!), context);
+      }
+      if (nextWord.colorImagePath != null) {
+        precacheImage(_getCachedImage(nextWord.colorImagePath!), context);
+      }
+    }
+  }
+
   Widget _buildImage(String path, {required bool isColor}) {
-    return SizedBox(
-      height: 200,
-      child: Image.file(
-        File(path),
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const Center(child: Text('Image not found')),
+    final imageProvider = _getCachedImage(path);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        height: 250,
+        child: Image(
+          image: imageProvider,
+          fit: BoxFit.contain,
+          gaplessPlayback: true, // Prevents flicker when switching images
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded || frame != null) {
+              return child;
+            }
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: frame == null ? const Center(child: CircularProgressIndicator(strokeWidth: 2)) : child,
+            );
+          },
+          errorBuilder: (_, __, ___) => Container(
+            height: 250,
+            alignment: Alignment.center,
+            color: Colors.grey[200],
+            child: const Text('Image not found'),
+          ),
+        ),
       ),
     );
   }

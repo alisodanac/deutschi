@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workmanager/workmanager.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/workers/notification_worker.dart';
 import '../../domain/entities/custom_reminder.dart';
 import 'notification_settings_state.dart';
 
@@ -42,9 +44,10 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
       ),
     );
 
-    // Reschedule if enabled
+    // Register the periodic WorkManager task if enabled
     if (state.enabled) {
-      await _rescheduleAll();
+      await notificationService.requestPermissions();
+      await _registerPeriodicTask();
     }
   }
 
@@ -52,106 +55,83 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notification_enabled', value);
 
-    if (value) {
-      await notificationService.requestPermissions();
-      await _rescheduleAll();
-    } else {
-      await notificationService.cancelAllNotifications();
-    }
-
+    // Emit the new state FIRST
     emit(state.copyWith(enabled: value));
+
+    if (value) {
+      final granted = await notificationService.requestPermissions();
+      if (granted) {
+        await _registerPeriodicTask();
+        debugPrint('Notification reminders enabled - WorkManager task registered');
+      } else {
+        debugPrint('Notification permissions not granted');
+      }
+    } else {
+      await _cancelPeriodicTask();
+      await notificationService.cancelAllNotifications();
+      debugPrint('Notification reminders disabled - WorkManager task cancelled');
+    }
   }
 
   Future<void> toggleRepeatDaily(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('repeat_daily', value);
-
     emit(state.copyWith(repeatDaily: value));
-
-    if (state.enabled) {
-      await _rescheduleAll();
-    }
   }
 
   Future<void> toggleMorning(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('morning_enabled', value);
-
-    if (state.enabled) {
-      if (value) {
-        await _scheduleMorning();
-      } else {
-        await notificationService.cancelNotification(NotificationService.morningNotificationId);
-      }
-    }
-
     emit(state.copyWith(morningEnabled: value));
+
+    if (!value) {
+      await notificationService.cancelNotification(NotificationService.morningNotificationId);
+    }
   }
 
   Future<void> updateMorningTime(TimeOfDay time) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('morning_hour', time.hour);
     await prefs.setInt('morning_minute', time.minute);
-
+    // Reset the "last fired" tracker so it will fire at the new time
+    await prefs.remove('last_morning_notification');
     emit(state.copyWith(morningTime: time));
-
-    if (state.enabled && state.morningEnabled) {
-      await _scheduleMorning();
-    }
   }
 
   Future<void> toggleAfternoon(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('afternoon_enabled', value);
-
-    if (state.enabled) {
-      if (value) {
-        await _scheduleAfternoon();
-      } else {
-        await notificationService.cancelNotification(NotificationService.afternoonNotificationId);
-      }
-    }
-
     emit(state.copyWith(afternoonEnabled: value));
+
+    if (!value) {
+      await notificationService.cancelNotification(NotificationService.afternoonNotificationId);
+    }
   }
 
   Future<void> updateAfternoonTime(TimeOfDay time) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('afternoon_hour', time.hour);
     await prefs.setInt('afternoon_minute', time.minute);
-
+    await prefs.remove('last_afternoon_notification');
     emit(state.copyWith(afternoonTime: time));
-
-    if (state.enabled && state.afternoonEnabled) {
-      await _scheduleAfternoon();
-    }
   }
 
   Future<void> toggleEvening(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('evening_enabled', value);
-
-    if (state.enabled) {
-      if (value) {
-        await _scheduleEvening();
-      } else {
-        await notificationService.cancelNotification(NotificationService.eveningNotificationId);
-      }
-    }
-
     emit(state.copyWith(eveningEnabled: value));
+
+    if (!value) {
+      await notificationService.cancelNotification(NotificationService.eveningNotificationId);
+    }
   }
 
   Future<void> updateEveningTime(TimeOfDay time) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('evening_hour', time.hour);
     await prefs.setInt('evening_minute', time.minute);
-
+    await prefs.remove('last_evening_notification');
     emit(state.copyWith(eveningTime: time));
-
-    if (state.enabled && state.eveningEnabled) {
-      await _scheduleEvening();
-    }
   }
 
   // Custom Reminders Logic
@@ -165,10 +145,6 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
 
     emit(state.copyWith(customReminders: newList));
     await _saveCustomReminders();
-
-    if (state.enabled && reminder.enabled) {
-      await _scheduleCustom(reminder);
-    }
   }
 
   Future<void> toggleCustomReminder(int id, bool value) async {
@@ -180,13 +156,8 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
     emit(state.copyWith(customReminders: newList));
     await _saveCustomReminders();
 
-    if (state.enabled) {
-      if (value) {
-        final reminder = newList.firstWhere((e) => e.id == id);
-        await _scheduleCustom(reminder);
-      } else {
-        await notificationService.cancelNotification(id);
-      }
+    if (!value) {
+      await notificationService.cancelNotification(id);
     }
   }
 
@@ -199,10 +170,9 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
     emit(state.copyWith(customReminders: newList));
     await _saveCustomReminders();
 
-    final reminder = newList.firstWhere((e) => e.id == id);
-    if (state.enabled && reminder.enabled) {
-      await _scheduleCustom(reminder);
-    }
+    // Reset the "last fired" tracker
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('last_custom_${id}_notification');
   }
 
   Future<void> deleteCustomReminder(int id) async {
@@ -219,59 +189,22 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
     await prefs.setString('custom_reminders', json);
   }
 
-  Future<void> _rescheduleAll() async {
-    if (state.morningEnabled) await _scheduleMorning();
-    if (state.afternoonEnabled) await _scheduleAfternoon();
-    if (state.eveningEnabled) await _scheduleEvening();
-
-    for (final reminder in state.customReminders) {
-      if (reminder.enabled) {
-        await _scheduleCustom(reminder);
-      }
-    }
+  /// Register a periodic WorkManager task that checks reminders every 15 minutes.
+  /// This is the reliable alternative to zonedSchedule which doesn't work on many Android devices.
+  Future<void> _registerPeriodicTask() async {
+    await Workmanager().registerPeriodicTask(
+      'notification_check',
+      notificationTaskName,
+      frequency: const Duration(minutes: 15),
+      constraints: Constraints(networkType: NetworkType.notRequired),
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+    );
+    debugPrint('WorkManager periodic notification task registered (every 15 min)');
   }
 
-  Future<void> _scheduleMorning() async {
-    await notificationService.scheduleDailyNotification(
-      id: NotificationService.morningNotificationId,
-      title: 'Zeit zum Lernen! 📚',
-      body: 'Good morning! Time to practice your German vocabulary.',
-      hour: state.morningTime.hour,
-      minute: state.morningTime.minute,
-      repeatDaily: state.repeatDaily,
-    );
-  }
-
-  Future<void> _scheduleAfternoon() async {
-    await notificationService.scheduleDailyNotification(
-      id: NotificationService.afternoonNotificationId,
-      title: 'Zeit zum Lernen! 📚',
-      body: 'Afternoon break? Perfect time for a quick vocabulary session!',
-      hour: state.afternoonTime.hour,
-      minute: state.afternoonTime.minute,
-      repeatDaily: state.repeatDaily,
-    );
-  }
-
-  Future<void> _scheduleEvening() async {
-    await notificationService.scheduleDailyNotification(
-      id: NotificationService.eveningNotificationId,
-      title: 'Zeit zum Lernen! 📚',
-      body: 'Wind down with some German practice before bed.',
-      hour: state.eveningTime.hour,
-      minute: state.eveningTime.minute,
-      repeatDaily: state.repeatDaily,
-    );
-  }
-
-  Future<void> _scheduleCustom(CustomReminder reminder) async {
-    await notificationService.scheduleDailyNotification(
-      id: reminder.id,
-      title: 'Zeit zum Lernen! 📚',
-      body: 'Time for your custom vocabulary practice session!',
-      hour: reminder.time.hour,
-      minute: reminder.time.minute,
-      repeatDaily: state.repeatDaily,
-    );
+  /// Cancel the periodic WorkManager task.
+  Future<void> _cancelPeriodicTask() async {
+    await Workmanager().cancelByUniqueName('notification_check');
+    debugPrint('WorkManager periodic notification task cancelled');
   }
 }

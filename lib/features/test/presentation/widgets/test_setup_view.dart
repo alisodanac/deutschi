@@ -58,7 +58,7 @@ class TestSetupView extends StatelessWidget {
 
               ElevatedButton(
                 onPressed: () {
-                  context.read<TestCubit>().startTest();
+                  context.read<TestCubit>().startTest(mode: state.selectedMode);
                 },
                 style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                 child: const Text('Start Test', style: TextStyle(fontSize: 18)),

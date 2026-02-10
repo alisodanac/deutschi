@@ -3,12 +3,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
 import '../services/backup_service.dart';
 import '../services/drive_service.dart';
+import 'notification_worker.dart';
 
 const backupTaskName = 'backup_to_drive';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
+    // Handle notification checks
+    if (task == notificationTaskName) {
+      return await executeNotificationTask();
+    }
+
     if (task != backupTaskName) return true;
 
     try {

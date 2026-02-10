@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../injection_container.dart';
 import '../manager/notification_settings_cubit.dart';
 import '../manager/notification_settings_state.dart';
@@ -53,6 +54,62 @@ class NotificationsSettingsScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // Debug: Test Notification Buttons
+                if (state.enabled)
+                  Card(
+                    color: Theme.of(context).colorScheme.tertiaryContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Test Notifications',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onTertiaryContainer,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    sl<NotificationService>().showTestNotification();
+                                    ScaffoldMessenger.of(
+                                      context,
+                                    ).showSnackBar(const SnackBar(content: Text('Test notification sent!')));
+                                  },
+                                  icon: const Icon(Icons.notifications, size: 18),
+                                  label: const Text('Send Now'),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    // Use Timer + show() since AlarmManager doesn't work on this device
+                                    Future.delayed(const Duration(seconds: 10), () {
+                                      sl<NotificationService>().showTestNotification();
+                                    });
+                                    ScaffoldMessenger.of(
+                                      context,
+                                    ).showSnackBar(const SnackBar(content: Text('Will fire in 10 seconds...')));
+                                  },
+                                  icon: const Icon(Icons.schedule, size: 18),
+                                  label: const Text('In 10 sec'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 24),
 
