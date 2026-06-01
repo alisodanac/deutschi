@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../injection_container.dart';
 import '../manager/add_word_cubit.dart';
 import '../manager/add_word_state.dart';
+import '../manager/ai_fill_cubit.dart';
+import '../manager/ai_fill_state.dart';
 import '../helpers/add_word_form_helper.dart';
 import '../widgets/word_type_selector.dart';
 import '../widgets/word_dynamic_fields.dart';
@@ -22,8 +24,11 @@ class AddWordScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => sl<AddWordCubit>()..loadCategories(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => sl<AddWordCubit>()..loadCategories()),
+        BlocProvider(create: (context) => sl<AiFillCubit>()),
+      ],
       child: AddWordView(initialWord: initialWord, initialSentences: initialSentences),
     );
   }
@@ -77,24 +82,47 @@ class _AddWordViewState extends State<AddWordView> {
         tooltip: 'AI Assistant',
       ),
 
-      body: BlocListener<AddWordCubit, AddWordState>(
-        listener: (context, state) {
-          if (state is AddWordSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(widget.initialWord != null ? 'Word updated successfully!' : 'Word added successfully!'),
-              ),
-            );
-            if (widget.initialWord != null) {
-              Navigator.pop(context, true); // Return true to indicate update
-            } else {
-              _helper.reset();
-              context.read<AddWordCubit>().loadCategories();
-            }
-          } else if (state is AddWordFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${state.message}')));
-          }
-        },
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<AddWordCubit, AddWordState>(
+            listener: (context, state) {
+              if (state is AddWordSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      widget.initialWord != null ? 'Word updated successfully!' : 'Word added successfully!',
+                    ),
+                  ),
+                );
+                if (widget.initialWord != null) {
+                  Navigator.pop(context, true); // Return true to indicate update
+                } else {
+                  _helper.reset();
+                  context.read<AddWordCubit>().loadCategories();
+                }
+              } else if (state is AddWordFailure) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${state.message}')));
+              }
+            },
+          ),
+          BlocListener<AiFillCubit, AiFillState>(
+            listener: (context, state) {
+              if (state is AiFillSuccess) {
+                _helper.applyAiSuggestion(
+                  state.suggestion,
+                  imagePath: state.imagePath,
+                  imageIsColored: state.imageIsColored,
+                );
+                final msg = state.imagePath != null
+                    ? 'Filled from AI. Review and adjust if needed.'
+                    : 'Text filled from AI. No image found — tap the image box to add one.';
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+              } else if (state is AiFillFailure) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('AI: ${state.message}')));
+              }
+            },
+          ),
+        ],
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: ListenableBuilder(
@@ -108,6 +136,32 @@ class _AddWordViewState extends State<AddWordView> {
                     WordTypeSelector(helper: _helper),
                     const SizedBox(height: 16),
                     WordDynamicFields(helper: _helper),
+                    BlocBuilder<AiFillCubit, AiFillState>(
+                      builder: (context, state) {
+                        final loading = state is AiFillLoading;
+                        return ElevatedButton.icon(
+                          onPressed: loading
+                              ? null
+                              : () {
+                                  final addState = context.read<AddWordCubit>().state;
+                                  final categories = addState is AddWordLoaded ? addState.categories : <String>[];
+                                  context.read<AiFillCubit>().generate(
+                                    _helper.wordController.text,
+                                    existingCategories: categories,
+                                  );
+                                },
+                          icon: loading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.auto_awesome),
+                          label: Text(loading ? 'Generating…' : 'Auto-fill with AI'),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     CategoryAutocomplete(helper: _helper),
                     const SizedBox(height: 24),
                     ImagePickerSection(helper: _helper),

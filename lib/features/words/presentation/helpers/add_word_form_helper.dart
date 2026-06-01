@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/services/gemini_service.dart';
 import '../../domain/entities/word.dart';
 import '../../domain/entities/word_type.dart';
 import '../manager/add_word_cubit.dart';
@@ -19,15 +20,20 @@ class AddWordFormHelper extends ChangeNotifier {
 
   String? _selectedArticle;
   WordType? _selectedType;
-  File? _bwImage;
-  File? _colorImage;
+  File? _image;
+  // True when [_image] is an AI-generated image already colored in the article
+  // color, so it is stored as the color image and the B&W look is derived from it.
+  bool _imageIsColored = false;
+  // Original hand-made color image of an existing word, preserved on edit unless
+  // the user picks a new single image.
+  String? _existingColorImagePath;
 
   final ImagePicker _picker = ImagePicker();
 
   String? get selectedArticle => _selectedArticle;
   WordType? get selectedType => _selectedType;
-  File? get bwImage => _bwImage;
-  File? get colorImage => _colorImage;
+  File? get image => _image;
+  bool get imageIsColored => _imageIsColored;
 
   void setType(WordType? value) {
     if (_selectedType != value) {
@@ -54,16 +60,48 @@ class AddWordFormHelper extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> pickImage(bool isColor) async {
+  Future<void> pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      if (isColor) {
-        _colorImage = File(image.path);
-      } else {
-        _bwImage = File(image.path);
-      }
+      _image = File(image.path);
+      // A manually picked image is a plain source: derive B&W + tint from it.
+      _imageIsColored = false;
+      // A newly picked image supersedes any old hand-made color image.
+      _existingColorImagePath = null;
       notifyListeners();
     }
+  }
+
+  void applyAiSuggestion(WordSuggestion s, {String? imagePath, bool imageIsColored = false}) {
+    if (s.type != null) _selectedType = s.type;
+
+    if (imagePath != null) {
+      _image = File(imagePath);
+      _imageIsColored = imageIsColored;
+      _existingColorImagePath = null;
+    }
+
+    if (_selectedType == WordType.noun) {
+      if (s.article != null) _selectedArticle = s.article;
+      if (s.plural != null) pluralController.text = s.plural!;
+    } else if (_selectedType == WordType.verb) {
+      if (s.perfect != null) perfectController.text = s.perfect!;
+      if (s.preterit != null) preteritController.text = s.preterit!;
+    }
+
+    if (s.category != null) categoryController.text = s.category!;
+
+    if (s.sentences.isNotEmpty) {
+      for (final c in sentenceControllers) {
+        c.dispose();
+      }
+      sentenceControllers.clear();
+      for (final sentence in s.sentences.take(4)) {
+        sentenceControllers.add(TextEditingController(text: sentence));
+      }
+    }
+
+    notifyListeners();
   }
 
   int? _editingWordId;
@@ -78,8 +116,11 @@ class AddWordFormHelper extends ChangeNotifier {
     preteritController.text = word.preterit ?? '';
     _selectedArticle = word.article;
     _selectedType = word.type;
-    _bwImage = word.bwImagePath != null ? File(word.bwImagePath!) : null;
-    _colorImage = word.colorImagePath != null ? File(word.colorImagePath!) : null;
+    final sourcePath = word.bwImagePath ?? word.colorImagePath;
+    _image = sourcePath != null ? File(sourcePath) : null;
+    // A word with only a color image (AI-generated or legacy) is treated as colored.
+    _imageIsColored = word.bwImagePath == null && word.colorImagePath != null;
+    _existingColorImagePath = word.colorImagePath;
 
     sentenceControllers.clear();
     for (var s in sentences) {
@@ -96,8 +137,8 @@ class AddWordFormHelper extends ChangeNotifier {
         article: _selectedType == WordType.noun ? _selectedArticle : null,
         type: _selectedType,
         category: categoryController.text.isNotEmpty ? categoryController.text : null,
-        bwImagePath: _bwImage?.path,
-        colorImagePath: _colorImage?.path,
+        bwImagePath: _imageIsColored ? null : _image?.path,
+        colorImagePath: _imageIsColored ? _image?.path : _existingColorImagePath,
         plural: _selectedType == WordType.noun ? pluralController.text : null,
         perfect: _selectedType == WordType.verb ? perfectController.text : null,
         preterit: _selectedType == WordType.verb ? preteritController.text : null,
@@ -122,8 +163,9 @@ class AddWordFormHelper extends ChangeNotifier {
     preteritController.clear();
     _selectedArticle = null;
     _selectedType = null;
-    _bwImage = null;
-    _colorImage = null;
+    _image = null;
+    _imageIsColored = false;
+    _existingColorImagePath = null;
     for (var c in sentenceControllers) {
       c.dispose();
     }

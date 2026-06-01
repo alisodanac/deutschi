@@ -26,13 +26,18 @@ import 'features/statistics/data/repository/statistics_repository_impl.dart';
 import 'features/statistics/domain/repository/statistics_repository.dart';
 import 'features/statistics/presentation/manager/statistics_cubit.dart';
 import 'core/services/tts_service.dart';
+import 'core/services/gemini_service.dart';
+import 'core/services/image_search_service.dart';
+import 'core/services/widget_service.dart';
+import 'features/words/presentation/manager/ai_fill_cubit.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
   //! Features - Add Word
   // Bloc
-  sl.registerFactory(() => AddWordCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => AddWordCubit(sl(), sl(), sl(), sl()));
+  sl.registerFactory(() => AiFillCubit(sl(), sl()));
   sl.registerFactory(() => WordsListCubit(sl()));
   sl.registerFactory(() => CategoryWordsCubit(sl()));
 
@@ -65,4 +70,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => DriveService());
   sl.registerLazySingleton(() => NotificationService());
   sl.registerLazySingleton(() => TTSService());
+  sl.registerLazySingleton(() => GeminiService());
+  sl.registerLazySingleton(() => ImageSearchService());
+  sl.registerLazySingleton(() => WidgetService(sl()));
 }

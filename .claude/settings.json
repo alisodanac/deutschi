@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//private/tmp/**)",
+      "Bash(curl -s https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyCHTAgG15HRsUO70-CbXikFoG3CFbzicIY -H 'Content-Type: application/json' -X POST -d '{ *)",
+      "Bash(python3 -c ' *)",
+      "Bash(flutter analyze *)",
+      "Bash(curl -s -H \"User-Agent: DeutschiApp/1.0\" \"https://api.openverse.org/v1/images/?q=head&page_size=3\")",
+      "Bash(curl -s \"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyCHTAgG15HRsUO70-CbXikFoG3CFbzicIY\" -H 'Content-Type: application/json' -X POST -d '{\"contents\":[{\"parts\":[{\"text\":\"Say OK\"}]}]}')"
+    ]
+  }
+}

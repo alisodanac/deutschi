@@ -7,6 +7,7 @@ import '../../../../core/constants.dart';
 import '../../../../core/services/tts_service.dart';
 import '../../domain/entities/word.dart';
 import '../manager/word_details_cubit.dart';
+import '../widgets/word_image.dart';
 
 class WordDetailsScreen extends StatelessWidget {
   final Word word;
@@ -182,7 +183,8 @@ class WordDetailsScreen extends StatelessWidget {
   }
 
   Widget _buildImages(BuildContext context) {
-    if (word.bwImagePath == null && word.colorImagePath == null) {
+    final sourcePath = word.bwImagePath ?? word.colorImagePath;
+    if (sourcePath == null) {
       return const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -193,6 +195,9 @@ class WordDetailsScreen extends StatelessWidget {
       );
     }
 
+    final source = FileImage(File(sourcePath));
+    final colorLabel = word.article ?? 'Color';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -200,27 +205,39 @@ class WordDetailsScreen extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            if (word.bwImagePath != null)
-              Expanded(
-                child: Column(
-                  children: [
-                    Image.file(File(word.bwImagePath!), height: 150, fit: BoxFit.cover),
-                    const SizedBox(height: 4),
-                    const Text('B&W', style: TextStyle(fontStyle: FontStyle.italic)),
-                  ],
-                ),
+            Expanded(
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: WordImage(image: source, colored: false, height: 150, fit: BoxFit.cover),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text('B&W', style: TextStyle(fontStyle: FontStyle.italic)),
+                ],
               ),
-            if (word.bwImagePath != null && word.colorImagePath != null) const SizedBox(width: 16),
-            if (word.colorImagePath != null)
-              Expanded(
-                child: Column(
-                  children: [
-                    Image.file(File(word.colorImagePath!), height: 150, fit: BoxFit.cover),
-                    const SizedBox(height: 4),
-                    const Text('Color', style: TextStyle(fontStyle: FontStyle.italic)),
-                  ],
-                ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: word.colorImagePath != null
+                        ? Image.file(File(word.colorImagePath!), height: 150, fit: BoxFit.cover)
+                        : WordImage(
+                            image: source,
+                            article: word.article,
+                            colored: true,
+                            height: 150,
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(colorLabel, style: const TextStyle(fontStyle: FontStyle.italic)),
+                ],
               ),
+            ),
           ],
         ),
       ],

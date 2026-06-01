@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme_cubit.dart';
+import '../../../../core/services/gemini_service.dart';
+import '../../../../core/services/image_search_service.dart';
+import '../../../../injection_container.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -45,9 +48,83 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => _showThemeDialog(context),
           ),
           const Divider(),
+
+          // AI Assistant Option
+          ListTile(
+            leading: const Icon(Icons.smart_toy_outlined),
+            title: const Text('AI Assistant'),
+            subtitle: const Text('API keys for word & image auto-fill'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showApiKeyDialog(context),
+          ),
+          const Divider(),
         ],
       ),
     );
+  }
+
+  Future<void> _showApiKeyDialog(BuildContext context) async {
+    final gemini = sl<GeminiService>();
+    final imageSearch = sl<ImageSearchService>();
+    final currentGeminiKey = await gemini.getApiKey();
+    final currentPixabayKey = await imageSearch.getPixabayKey();
+    if (!context.mounted) return;
+
+    final geminiController = TextEditingController(text: currentGeminiKey ?? '');
+    final pixabayController = TextEditingController(text: currentPixabayKey ?? '');
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('AI Assistant Keys'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Gemini key (free at aistudio.google.com) auto-fills word details. Stored securely on this device.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: geminiController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Gemini API Key', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Pixabay key (free at pixabay.com/api/docs) finds better word images. Optional — without it, a no-key fallback is used.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pixabayController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Pixabay API Key', border: OutlineInputBorder()),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                await gemini.setApiKey(geminiController.text);
+                await imageSearch.setPixabayKey(pixabayController.text);
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Keys saved')));
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+    geminiController.dispose();
+    pixabayController.dispose();
   }
 
   String _getThemeName(AppThemeMode mode) {

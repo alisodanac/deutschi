@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +10,7 @@ import 'package:dutschi/core/theme/app_theme.dart';
 import 'package:dutschi/core/workers/backup_worker.dart';
 
 import 'package:dutschi/core/services/notification_service.dart';
+import 'package:dutschi/core/services/widget_service.dart';
 
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'injection_container.dart' as di;
@@ -24,6 +27,11 @@ void main() async {
 
     // Initialize Notification Service
     await di.sl<NotificationService>().initialize();
+
+    // Initialize the home-screen quiz widget (register tap callback + build deck)
+    final widgetService = di.sl<WidgetService>();
+    await widgetService.init();
+    unawaited(widgetService.refresh());
 
     runApp(const MyApp());
   } catch (e, stack) {

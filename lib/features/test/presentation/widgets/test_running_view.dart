@@ -7,6 +7,7 @@ import '../../domain/entities/test_mode.dart';
 import '../manager/test_cubit.dart';
 import '../manager/test_state.dart';
 import '../../../words/domain/entities/word_type.dart';
+import '../../../words/presentation/widgets/word_image.dart';
 
 class TestRunningView extends StatefulWidget {
   const TestRunningView({super.key});
@@ -90,20 +91,7 @@ class _TestRunningViewState extends State<TestRunningView> {
               const SizedBox(height: 16),
 
               // Display: Image or Word
-              if (state.isAnswerChecked && state.isAnswerCorrect && word.colorImagePath != null)
-                _buildImage(word.colorImagePath!, isColor: true)
-              else if (word.bwImagePath != null)
-                _buildImage(word.bwImagePath!, isColor: false)
-              else
-                Container(
-                  height: 200,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
-                  child: Text(
-                    mode == TestMode.intensive ? 'No Image Available' : 'Word: ???',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ),
+              _buildWordVisual(state, mode),
 
               const SizedBox(height: 24),
 
@@ -180,34 +168,76 @@ class _TestRunningViewState extends State<TestRunningView> {
     }
   }
 
-  Widget _buildImage(String path, {required bool isColor}) {
+  /// Shows the word image: B&W as the prompt, article-colored as the reward on a
+  /// correct answer. Both looks are derived from the single stored source image,
+  /// except for legacy words that still have a hand-made color image.
+  Widget _buildWordVisual(TestRunning state, TestMode mode) {
+    final word = state.currentWord;
+    final sourcePath = word.bwImagePath ?? word.colorImagePath;
+
+    if (sourcePath == null) {
+      return Container(
+        height: 200,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
+        child: Text(
+          mode == TestMode.intensive ? 'No Image Available' : 'Word: ???',
+          style: const TextStyle(fontSize: 18),
+        ),
+      );
+    }
+
+    final reveal = state.isAnswerChecked && state.isAnswerCorrect;
+    if (reveal) {
+      if (word.colorImagePath != null) {
+        return _buildImage(word.colorImagePath!, rawColor: true);
+      }
+      return _buildImage(sourcePath, colored: true, article: word.article);
+    }
+    return _buildImage(sourcePath, colored: false);
+  }
+
+  Widget _buildImage(String path, {bool colored = false, bool rawColor = false, String? article}) {
     final imageProvider = _getCachedImage(path);
+
+    Widget frameBuilder(BuildContext context, Widget child, int? frame, bool wasSynchronouslyLoaded) {
+      if (wasSynchronouslyLoaded || frame != null) {
+        return child;
+      }
+      return AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: frame == null ? const Center(child: CircularProgressIndicator(strokeWidth: 2)) : child,
+      );
+    }
+
+    Widget errorBuilder(BuildContext _, Object __, StackTrace? ___) => Container(
+      height: 250,
+      alignment: Alignment.center,
+      color: Colors.grey[200],
+      child: const Text('Image not found'),
+    );
+
+    final Widget image = rawColor
+        ? Image(
+            image: imageProvider,
+            fit: BoxFit.contain,
+            gaplessPlayback: true,
+            frameBuilder: frameBuilder,
+            errorBuilder: errorBuilder,
+          )
+        : WordImage(
+            image: imageProvider,
+            article: article,
+            colored: colored,
+            fit: BoxFit.contain,
+            gaplessPlayback: true,
+            frameBuilder: frameBuilder,
+            errorBuilder: errorBuilder,
+          );
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        height: 250,
-        child: Image(
-          image: imageProvider,
-          fit: BoxFit.contain,
-          gaplessPlayback: true, // Prevents flicker when switching images
-          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            if (wasSynchronouslyLoaded || frame != null) {
-              return child;
-            }
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: frame == null ? const Center(child: CircularProgressIndicator(strokeWidth: 2)) : child,
-            );
-          },
-          errorBuilder: (_, __, ___) => Container(
-            height: 250,
-            alignment: Alignment.center,
-            color: Colors.grey[200],
-            child: const Text('Image not found'),
-          ),
-        ),
-      ),
+      child: SizedBox(height: 250, child: image),
     );
   }
 

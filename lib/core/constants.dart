@@ -21,4 +21,19 @@ class AppColors {
         return Colors.grey.shade200;
     }
   }
+
+  /// Plain English color name for an article, used in AI image-generation prompts.
+  /// Returns null for words without an article (non-nouns).
+  static String? getArticleColorName(String? article) {
+    switch (article) {
+      case 'Die':
+        return 'pink';
+      case 'Das':
+        return 'yellow';
+      case 'Der':
+        return 'blue';
+      default:
+        return null;
+    }
+  }
 }
